@@ -320,10 +320,11 @@ sfence_vma()
 }
 
 
-#define PGSIZE 4096 // bytes per page
-#define PGSHIFT 12  // bits of offset within a page
+#define PGSIZE 4096 // bytes per page == 8B * 512 entries
+#define PGSHIFT 12  // bits of offset within a page//because 2^12 = 4096 is size of page
 
-#define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))
+#define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))//this use for page table to round up the size of page table,
+//for example if we have 3 pages then we need 3*8 bytes for page table so we need to round up to 4*8 bytes,for alignment
 #define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
 
 #define PTE_V (1L << 0) // valid
@@ -333,9 +334,9 @@ sfence_vma()
 #define PTE_U (1L << 4) // 1 -> user can access
 
 // shift a physical address to the right place for a PTE.
-#define PA2PTE(pa) ((((uint64)pa) >> 12) << 10)
+#define PA2PTE(pa) ((((uint64)pa) >> 12) << 10)//获取ppn
 
-#define PTE2PA(pte) (((pte) >> 10) << 12)
+#define PTE2PA(pte) (((pte) >> 10) << 12)//next page
 
 #define PTE_FLAGS(pte) ((pte) & 0x3FF)
 
@@ -351,4 +352,4 @@ sfence_vma()
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
 
 typedef uint64 pte_t;
-typedef uint64 *pagetable_t; // 512 PTEs
+typedef uint64 *pagetable_t; // 512 PTEs//相当一个数组，每个元素是一个pte_t，每个pte_t是一个uint64

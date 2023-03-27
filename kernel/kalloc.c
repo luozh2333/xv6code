@@ -15,23 +15,25 @@ extern char end[]; // first address after kernel.
                    // defined by kernel.ld.
 
 struct run {
-  struct run *next;
+  struct run *next;// this is a pointer to the next run
 };
 
 struct {
-  struct spinlock lock;
+  struct spinlock lock;// this is a lock which can be used to lock the memory
   struct run *freelist;
 } kmem;
 
 void
 kinit()
 {
+    // initializes the free list to hold every page between the end of the kernel and PHYSTOP
+  // xv6 assumes that the machine has 128MB of RAM
   initlock(&kmem.lock, "kmem");
-  freerange(end, (void*)PHYSTOP);
+  freerange(end, (void*)PHYSTOP);//给end到PHYSTOP的空间分配以pagesize为单位大小的空间
 }
 
 void
-freerange(void *pa_start, void *pa_end)
+freerange(void *pa_start, void *pa_end)//从pa_start到pa_end的空间分配以pagesize为单位大小的空间
 {
   char *p;
   p = (char*)PGROUNDUP((uint64)pa_start);
@@ -46,18 +48,20 @@ freerange(void *pa_start, void *pa_end)
 void
 kfree(void *pa)
 {
+  //给pa分配pagesize的空间，并挂载到kmem.freelist上
   struct run *r;
 
-  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)// checks if the address is a multiple of PGSIZE, 
+  //if it is less than the end of the kernel, and if it is greater than the end of the physical memory
     panic("kfree");
 
   // Fill with junk to catch dangling refs.
   memset(pa, 1, PGSIZE);
-
+  
   r = (struct run*)pa;
 
   acquire(&kmem.lock);
-  r->next = kmem.freelist;
+  r->next = kmem.freelist;// adds the run to the free list head 
   kmem.freelist = r;
   release(&kmem.lock);
 }
@@ -68,6 +72,7 @@ kfree(void *pa)
 void *
 kalloc(void)
 {
+  //从kmem.freelist上分配一个page
   struct run *r;
 
   acquire(&kmem.lock);
@@ -78,5 +83,7 @@ kalloc(void)
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
-  return (void*)r;
+  return (void*)r;//allocate from the free list head which is the most recently freed page ,
+  //when it is allocated it is removed from the free list
+  //and it is allocated from big to small address
 }

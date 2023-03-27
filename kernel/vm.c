@@ -6,6 +6,7 @@
 #include "defs.h"
 #include "fs.h"
 
+
 /*
  * the kernel's page table.
  */
@@ -17,7 +18,9 @@ extern char trampoline[]; // trampoline.S
 
 /*
  * create a direct-map page table for the kernel.
- */
+ 把va和 pa绑定：先初始化pagetable，其实就是一个int数组，pte就是一个int，
+ 首先要通过va得到pte的index，然后把pa的值赋给pte[index]，这样就把va和pa绑定了
+其中 通过walk()函数找到va对于的最后一级pagetable的pte，如果还没有创建的话就先创建 */
 void
 kvminit()
 {
@@ -70,19 +73,20 @@ kvminithart()
 //    0..11 -- 12 bits of byte offset within the page.
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
-{
+{//pagetable_t is uint64*
+//  pte_t is uint64
+
   if(va >= MAXVA)
     panic("walk");
-
   for(int level = 2; level > 0; level--) {
-    pte_t *pte = &pagetable[PX(level, va)];
-    if(*pte & PTE_V) {
+    pte_t *pte = &pagetable[PX(level, va)];//((((uint64) (va)) >> PXSHIFT(level)) & PXMASK), point to first address of page
+    if(*pte & PTE_V) {//if valid
       pagetable = (pagetable_t)PTE2PA(*pte);
     } else {
-      if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
+      if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)//如没有，就创建一个新的pagetable
         return 0;
       memset(pagetable, 0, PGSIZE);
-      *pte = PA2PTE(pagetable) | PTE_V;
+      *pte = PA2PTE(pagetable) | PTE_V;//set valid
     }
   }
   return &pagetable[PX(0, va)];
@@ -151,19 +155,20 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   uint64 a, last;
   pte_t *pte;
 
-  a = PGROUNDDOWN(va);
+  a = PGROUNDDOWN(va);//这里往下是对va和size进行对齐，因为地址是从小到大的
   last = PGROUNDDOWN(va + size - 1);
   for(;;){
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
     if(*pte & PTE_V)
       panic("remap");
-    *pte = PA2PTE(pa) | perm | PTE_V;
+    *pte = PA2PTE(pa) | perm | PTE_V;//找到了最后一个level的pte，把物理地址写进去
     if(a == last)
       break;
     a += PGSIZE;
     pa += PGSIZE;
   }
+  // Flush TLB to make sure the new mapping takes effect. 
   return 0;
 }
 
