@@ -85,6 +85,7 @@ void            printf(char*, ...);
 void            panic(char*) __attribute__((noreturn));
 void            printfinit(void);
 
+
 // proc.c
 int             cpuid(void);
 void            exit(int);
@@ -158,6 +159,7 @@ void            uartputc_sync(int);
 int             uartgetc(void);
 
 // vm.c
+void            vmprint(pagetable_t pagetable);
 void            kvminit(void);
 void            kvminithart(void);
 uint64          kvmpa(uint64);

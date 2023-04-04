@@ -95,3 +95,16 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// add
+uint64 sys_trace(void){
+  uint64 p;
+  // 获得参数
+  if(argaddr(0, &p) < 0)
+    return -1;
+  myproc()->mask = p;
+
+  return 0;
+}
+
+ 
