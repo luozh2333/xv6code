@@ -87,3 +87,17 @@ kalloc(void)
   //when it is allocated it is removed from the free list
   //and it is allocated from big to small address
 }
+
+void
+freebytes(uint64 *dst)
+{
+  *dst = 0;
+  struct run *p = kmem.freelist; // 用于遍历
+
+  acquire(&kmem.lock);
+  while (p) {
+    *dst += PGSIZE;
+    p = p->next;
+  }
+  release(&kmem.lock);
+}

@@ -19,6 +19,7 @@ extern void forkret(void);
 static void wakeup1(struct proc *chan);
 static void freeproc(struct proc *p);
 
+
 extern char trampoline[]; // trampoline.S
 
 // initialize the proc table at boot time.
@@ -691,5 +692,16 @@ procdump(void)
       state = "???";
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
+  }
+}
+
+void
+procnum(uint64 *dst)
+{
+  *dst = 0;
+  struct proc *p;
+  for (p = proc; p < &proc[NPROC]; p++) {
+    if (p->state != UNUSED)
+      (*dst)++;
   }
 }
